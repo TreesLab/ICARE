@@ -41,7 +41,7 @@ The second file is the information of genic regions, and the format is as the fo
 You may download the data from [ENSEMBL Biomart](http://www.ensembl.org/index.html).
 
 ##### Mapping error set
-The mapping error sets can be downloaded from [our website](ftp://treeslab1.genomics.sinica.edu.tw/ICARES/MEF/).
+The mapping error sets can be downloaded from our FTP site: ftp://treeslab1.genomics.sinica.edu.tw/ICARES/MEF/
 
 #### 2.2. Quick Start
 If the three files described above have been prepared (eg. "sample.list", "human\_ensembl\_75.genic\_region", and "hsa.MEF"),
