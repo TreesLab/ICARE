@@ -1,10 +1,11 @@
 #! /usr/bin/env bash
 
-# version: 0.6.1
+# version: 0.6.2
 
-if [ "$#" -ne "4" ];then
+if [ "$#" -ne "5" ];then
 	echo 'Usage:'
-	echo '  ./ICARES.sh [SAMPLE_LIST] [GENE_REGION] [MEF_FILE] [WORK_SPACE]'
+	echo '  ./ICARES.sh [SAMPLE_LIST] [GENE_REGION] [MEF_FILE] [WORK_SPACE] [Conserved?(Yes/No)]'
+	echo '  (The multi-sample support will not be used when the "Conserved" option is set to "Yes".)'
 	exit 0
 fi
 
@@ -13,7 +14,6 @@ if [ "$(echo $0 | grep -o '\/')" = "" ]; then
 else
     bin=$(echo $0 | sed 's/\/[^/]*$//g')"/bin"
 fi
-
 
 function RDD(){
     cat $1 | awk '{
@@ -64,12 +64,13 @@ do
 done
 
 ##
+Con=`echo $5|awk '{ if ($1==x) print 0; else print 1;}' "x=Yes"`
 cat $4"/"*.RDD.noBAD.uniq.positive.counter.uniqlo > $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo
 cat $4"/"*.RDD.noBAD.uniq.minus.counter.uniqlo > $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo
 $bin/SiteQ $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo -s $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo -c $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter 2>> $4/tmp.log
 $bin/SiteQ $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo -s $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo -c $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter 2>> $4/tmp.log
-cat $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter | awk -F'\t' '($6>1)' | cut -f '1-5' | sort | uniq > $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support
-cat $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter | awk -F'\t' '($6>1)' | cut -f '1-5' | sort | uniq > $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter.mutiple_support
+cat $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter | awk -F'\t' '($6>x)' "x=$Con"| cut -f '1-5' | sort | uniq > $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support
+cat $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter | awk -F'\t' '($6>x)' "x=$Con" | cut -f '1-5' | sort | uniq > $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter.mutiple_support
 $bin/SiteQ $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support -s $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support -c $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support.counter 2>> $4/tmp.log
 $bin/SiteQ $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter.mutiple_support -s $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter.mutiple_support -c $4"/"all_sample.RDD.noBAD.uniq.minus.counter.uniqlo.counter.mutiple_support.counter 2>> $4/tmp.log
 cat $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support.counter | awk -F'\t' '($6==1)' | cut -f '1-5' > $4"/"all_sample.RDD.noBAD.uniq.positive.counter.uniqlo.counter.mutiple_support.counter.single_snv
@@ -130,7 +131,7 @@ do
 done
 
 ##
-cat $(cat $1 | sed "s/.*\///g" | sed -r "s/(.+)/$4\/\1.RDD.minus.clean.2strand3support.MEFok.noBAD.sites\n$4\/\1.RDD.positive.clean.2strand3support.MEFok.noBAD.sites/g") | sort -k1,1 -k2,2n -k3,3n | uniq > $4"/""all_MEFok.sort"
+cat $(cat $1 | sed "s/.*\///g" | sed -r "s/(.+)/\/\1.RDD.minus.clean.2strand3support.MEFok.noBAD.sites\n\/\1.RDD.positive.clean.2strand3support.MEFok.noBAD.sites/g"|sed 's/\///g'|awk '{print x"/"$1}' "x=$4")|sort -k1,1 -k2,2n -k3,3n | uniq > $4"/""all_MEFok.sort"
 $bin/SiteQ $4"/""all_MEFok.sort" -s $4"/""all_MEFok.sort" -c $4"/""all_MEFok.sort.SiteQ_counter" 2>> $4/tmp.log
 cat $4"/""all_MEFok.sort.SiteQ_counter" | awk -F'\t' '($8==1)||(($4=="+")&&(($7=="AtoG")||($7=="CtoT")))||(($4=="-")&&(($7=="TtoC")||($7=="GtoA")))' | cut -f '1-7' > $4"/""all_MEFok.sort.clean"
 
@@ -150,4 +151,3 @@ $bin/clustering.py <(cut -f '1-7' $4"/""all_MEFok.sort.all.clustering") -o $4"/"
 
 ##
 $bin/clustering_nmm.py $4"/""all_MEFok.sort.all.clustering.re_clustering" -o $4"/""all_MEFok.sort.all.clustering.re_clustering.nmm" > $4"/""nmm.log"
-
